@@ -6,7 +6,6 @@ import { AuthModule } from './auth/auth.module';
 import { DocumentsModule } from './documents/documents.module';
 import { ChatModule } from './chat/chat.module';
 import { RagModule } from './rag/rag.module';
-import { ActivityLogModule } from './activity-log/activity-log.module';
 
 @Module({
   imports: [
@@ -17,7 +16,6 @@ import { ActivityLogModule } from './activity-log/activity-log.module';
         uri: config.get<string>('MONGODB_URI'),
       }),
     }),
-    ActivityLogModule,
     AuthModule,
     RagModule,
     DocumentsModule,

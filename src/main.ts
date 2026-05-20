@@ -11,6 +11,12 @@ async function bootstrap() {
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   app.setGlobalPrefix('api');
 
+  // Log every incoming request
+  app.use((req: any, _res: any, next: any) => {
+    console.log(`[HTTP] ${req.method} ${req.url}  auth=${req.headers['authorization']?.slice(0, 20) ?? 'none'}`);
+    next();
+  });
+
   await app.listen(process.env.PORT || 4000);
 
   // Bootstrap admin user if none exists

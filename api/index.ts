@@ -1,10 +1,10 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { ExpressAdapter } from '@nestjs/platform-express';
-import * as express from 'express';
+import express from 'express';
 import { AppModule } from '../src/app.module';
 import { UsersService } from '../src/users/users.service';
-import * as bcrypt from 'bcrypt';
+import bcrypt from 'bcrypt';
 
 const server = express();
 let isBootstrapped = false;

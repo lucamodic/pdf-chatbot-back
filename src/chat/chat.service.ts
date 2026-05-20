@@ -4,6 +4,7 @@ import { GeminiService } from '../rag/gemini.service';
 import { HistoryService } from './history.service';
 import { buildSystemPrompt, buildUserPrompt } from '../rag/prompts';
 import { ConfigService } from '@nestjs/config';
+import { ActivityLogService } from '../activity-log/activity-log.service';
 
 const COURSE_TITLE = 'Cátedra';
 const NO_CONTEXT_REPLY = 'No encuentro esa información en el material de la cátedra.';
@@ -17,6 +18,7 @@ export class ChatService {
     private gemini: GeminiService,
     private historyService: HistoryService,
     private config: ConfigService,
+    private activityLog: ActivityLogService,
   ) {}
 
   async *ask(userId: string, question: string): AsyncGenerator<{ type: 'token' | 'done' | 'chat_error'; data: any }> {
@@ -54,6 +56,7 @@ export class ChatService {
       await this.historyService.save(userId, question, fullAnswer, sources);
     } catch (err: any) {
       this.logger.error(`streamChat error: ${err.message}`);
+      await this.activityLog.error('ChatService', err.message, err, { question });
       yield { type: 'chat_error', data: err.message || 'Error generating response' };
     }
   }

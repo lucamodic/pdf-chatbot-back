@@ -62,9 +62,13 @@ export class GeminiService implements OnModuleInit {
     throw new Error('Embed failed after max retries');
   }
 
-  async *streamChat(systemPrompt: string, userPrompt: string): AsyncGenerator<string> {
+  async *streamChat(
+    systemPrompt: string,
+    userPrompt: string,
+    history: { role: 'user' | 'assistant'; content: string }[] = [],
+  ): AsyncGenerator<string> {
     const hasKey = !!this.groqApiKey;
-    this.logger.log(`Groq request — model=${this.chatModelName}  keyPresent=${hasKey}  keyPrefix=${this.groqApiKey?.slice(0, 8) || 'EMPTY'}  sysLen=${systemPrompt.length}  userLen=${userPrompt.length}`);
+    this.logger.log(`Groq request — model=${this.chatModelName}  keyPresent=${hasKey}  keyPrefix=${this.groqApiKey?.slice(0, 8) || 'EMPTY'}  historyTurns=${history.length}  userLen=${userPrompt.length}`);
 
     if (!hasKey) {
       this.logger.error('GROQ_API_KEY is empty — cannot call Groq');
@@ -78,6 +82,7 @@ export class GeminiService implements OnModuleInit {
       model: this.chatModelName,
       messages: [
         { role: 'system', content: systemPrompt },
+        ...history,
         { role: 'user', content: userPrompt },
       ],
       stream: true,

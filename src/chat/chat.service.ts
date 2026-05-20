@@ -19,8 +19,16 @@ export class ChatService {
     private config: ConfigService,
   ) {}
 
-  async *ask(userId: string, question: string): AsyncGenerator<{ type: 'token' | 'done' | 'chat_error'; data: any }> {
-    const chunks = await this.retriever.search(question);
+  async *ask(
+    userId: string,
+    question: string,
+    history: { role: 'user' | 'assistant'; content: string }[] = [],
+  ): AsyncGenerator<{ type: 'token' | 'done' | 'chat_error'; data: any }> {
+    const searchQuery = buildSearchQuery(question, history);
+    if (searchQuery !== question) {
+      this.logger.log(`Search query augmented: "${question}" → "${searchQuery}"`);
+    }
+    const chunks = await this.retriever.search(searchQuery);
 
     if (chunks.length === 0) {
       yield { type: 'token', data: NO_CONTEXT_REPLY };
@@ -43,7 +51,7 @@ export class ChatService {
       .map((c) => ({ chunkId: c.id, heading: c.heading, snippet: c.text.slice(0, 200) }));
 
     try {
-      for await (const token of this.gemini.streamChat(systemPrompt, userPrompt)) {
+      for await (const token of this.gemini.streamChat(systemPrompt, userPrompt, history)) {
         fullAnswer += token;
         tokenCount++;
         yield { type: 'token', data: token };
@@ -57,4 +65,23 @@ export class ChatService {
       yield { type: 'chat_error', data: err.message || 'Error generating response' };
     }
   }
+}
+
+// If the question is a short follow-up, prepend the last user question so the
+// vector search has enough context to find the right chunks.
+function buildSearchQuery(
+  question: string,
+  history: { role: string; content: string }[],
+): string {
+  const FOLLOWUP_WORDS = /^(y|también|además|pero|entonces|qué|que|cómo|como|cuál|cual|podés|podes|explicá|explica|contame|contá|más|mas|eso|esto|ese|esa)\b/i;
+  const isShort = question.trim().length < 25;
+  const isFollowup = FOLLOWUP_WORDS.test(question.trim());
+
+  if (!isShort && !isFollowup) return question;
+
+  // Find the last user message in history
+  const lastUser = [...history].reverse().find(m => m.role === 'user');
+  if (!lastUser) return question;
+
+  return `${lastUser.content} ${question}`;
 }
